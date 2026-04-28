@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Azure Pricing Tool</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f3f4f6;
+            color: #1f2937;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #0078d4;
+            color: #fff;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+        }
+
+        header svg {
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .container {
+            padding: 1.25rem 1.5rem;
+        }
+
+        /* ── Filter panel ── */
+        .filter-panel {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem 1.25rem 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-panel h2 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: #6b7280;
+            margin-bottom: 0.85rem;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 0.65rem 1rem;
+        }
+
+        .dependent-filter-grid {
+            margin-top: 0.75rem;
+            grid-template-columns: repeat(3, minmax(220px, 1fr));
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .filter-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            padding: 0.35rem 0.55rem;
+            font-size: 0.82rem;
+            outline: none;
+            transition: border-color .15s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            border-color: #0078d4;
+            box-shadow: 0 0 0 2px rgba(0, 120, 212, .15);
+        }
+
+        .multi-select {
+            position: relative;
+        }
+
+        .multi-select-trigger {
+            width: 100%;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            color: #111827;
+            padding: 0.5rem 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            text-align: left;
+            box-shadow: none;
+        }
+
+        .multi-select-trigger:hover {
+            background: #f9fafb;
+        }
+
+        .multi-select-trigger:disabled {
+            cursor: wait;
+            color: #6b7280;
+            background: #f9fafb;
+        }
+
+        .multi-select-trigger::after {
+            content: '▾';
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .multi-select-menu {
+            position: absolute;
+            top: calc(100% + 0.35rem);
+            left: 0;
+            right: 0;
+            z-index: 20;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 16px 32px rgba(15, 23, 42, .14);
+            overflow: hidden;
+        }
+
+        .multi-select-actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+            gap: 0.75rem;
+        }
+
+        .multi-select-actions-bar span {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .multi-select-search {
+            padding: 0.45rem 0.55rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fff;
+        }
+
+        .multi-select-search input {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            padding: 0.35rem 0.55rem;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        .multi-select-search input:focus {
+            border-color: #0078d4;
+            box-shadow: 0 0 0 2px rgba(0, 120, 212, .12);
+        }
+
+        .text-button {
+            background: transparent;
+            border: none;
+            color: #0078d4;
+            padding: 0;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .multi-select-options {
+            max-height: 18rem;
+            overflow: auto;
+            padding: 0.3rem;
+        }
+
+        .multi-select-option {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.5rem 0.55rem;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .multi-select-option:hover {
+            background: #eff6ff;
+        }
+
+        .multi-select-option input {
+            margin: 0;
+        }
+
+        .multi-select-option-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            min-width: 0;
+        }
+
+        .multi-select-option-text strong {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .multi-select-option-text span {
+            font-size: 0.72rem;
+            color: #6b7280;
+            text-transform: lowercase;
+        }
+
+        .filter-hint {
+            font-size: 0.72rem;
+            color: #6b7280;
+        }
+
+        .view-switcher {
+            display: inline-flex;
+            gap: 0.35rem;
+            background: #e5e7eb;
+            padding: 0.25rem;
+            border-radius: 999px;
+            margin-bottom: 0.75rem;
+        }
+
+        .view-tab {
+            background: transparent;
+            color: #4b5563;
+            border-radius: 999px;
+            padding: 0.45rem 0.9rem;
+        }
+
+        .view-tab.active {
+            background: #fff;
+            color: #111827;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+        }
+
+        .view-panel[hidden] {
+            display: none;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            padding: 0.45rem 1.1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: background .15s, transform .1s;
+        }
+
+        button:active {
+            transform: scale(.97);
+        }
+
+        #btnSearch {
+            background: #0078d4;
+            color: #fff;
+        }
+
+        #btnSearch:hover {
+            background: #005ea2;
+        }
+
+        #btnSearch:disabled {
+            background: #93c4ea;
+            cursor: default;
+        }
+
+        #btnClear {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        #btnClear:hover {
+            background: #e5e7eb;
+        }
+
+        .status {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-left: auto;
+        }
+
+        /* ── Results area ── */
+        .results-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.55rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .results-bar span {
+            font-size: 0.82rem;
+            color: #6b7280;
+        }
+
+        .comparison-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.55rem;
+            color: #6b7280;
+            font-size: 0.82rem;
+        }
+
+        .comparison-summary strong {
+            color: #111827;
+        }
+
+        #btnLoadMore {
+            background: #0078d4;
+            color: #fff;
+            padding: 0.35rem 0.9rem;
+            font-size: 0.82rem;
+        }
+
+        #btnLoadMore:hover {
+            background: #005ea2;
+        }
+
+        #btnLoadMore:disabled {
+            background: #93c4ea;
+            cursor: default;
+        }
+
+        .table-wrapper {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: auto;
+            max-height: calc(100vh - 340px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.8rem;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: #f9fafb;
+            border-bottom: 2px solid #e5e7eb;
+            padding: 0.6rem 0.75rem;
+            text-align: left;
+            font-weight: 700;
+            white-space: nowrap;
+            color: #374151;
+            user-select: none;
+            cursor: pointer;
+        }
+
+        thead th:hover {
+            background: #e5e7eb;
+        }
+
+        thead th .sort-arrow {
+            margin-left: 4px;
+            opacity: .45;
+            font-size: .7rem;
+        }
+
+        thead th.sorted .sort-arrow {
+            opacity: 1;
+            color: #0078d4;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        tbody tr:hover {
+            background: #f0f7ff;
+        }
+
+        tbody td {
+            padding: 0.45rem 0.75rem;
+            white-space: nowrap;
+            max-width: 260px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        tbody td.price {
+            font-family: monospace;
+            text-align: right;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #9ca3af;
+            font-size: 0.9rem;
+        }
+
+        .comparison-cell {
+            min-width: 8rem;
+        }
+
+        .comparison-cell.empty {
+            color: #9ca3af;
+        }
+
+        .comparison-cell .delta {
+            display: block;
+            font-size: 0.7rem;
+            color: #6b7280;
+            margin-top: 0.15rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 3px solid #d1d5db;
+            border-top-color: #0078d4;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-msg {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 6px;
+            color: #b91c1c;
+            padding: 0.65rem 1rem;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#fff" opacity=".9" />
+            <path d="M2 17l10 5 10-5" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+            <path d="M2 12l10 5 10-5" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <h1>Azure Retail Pricing Explorer</h1>
+    </header>
+
+    <div class="container">
+
+        <!-- Filter panel -->
+        <div class="filter-panel">
+            <h2>Filters</h2>
+            <div class="filter-grid">
+                <div class="filter-group"><label for="regionDropdownButton">ARM Region Name</label>
+                    <div class="multi-select" id="regionDropdown">
+                        <button id="regionDropdownButton" class="multi-select-trigger" type="button"
+                            aria-haspopup="listbox" aria-expanded="false">Loading regions...</button>
+                        <div class="multi-select-menu" id="regionDropdownMenu" hidden>
+                            <div class="multi-select-actions-bar">
+                                <span id="regionMenuStatus">Loading available regions...</span>
+                                <div>
+                                    <button id="btnSelectAllRegions" class="text-button" type="button">Select all</button>
+                                    <button id="btnClearRegions" class="text-button" type="button">Clear</button>
+                                </div>
+                            </div>
+                            <div class="multi-select-search">
+                                <input id="regionSearch" class="dropdown-search-input" type="text" placeholder="Search regions" />
+                            </div>
+                            <div class="multi-select-options" id="regionOptions" role="listbox"
+                                aria-label="Available regions"></div>
+                        </div>
+                    </div>
+                    <span class="filter-hint" id="regionHint">Choose 2 or more regions to compare identical SKUs side by side.</span>
+                </div>
+                <div class="filter-group"><label for="f_location">Location</label><input id="f_location"
+                        placeholder="e.g. East US" /></div>
+                <div class="filter-group"><label for="f_meterId">Meter ID</label><input id="f_meterId"
+                        placeholder="GUID" /></div>
+                <div class="filter-group"><label for="f_meterName">Meter Name</label><input id="f_meterName"
+                        placeholder="e.g. D2s v3" /></div>
+            </div>
+            <div class="filter-grid dependent-filter-grid">
+                <div class="filter-group"><label for="serviceFamilyDropdownButton">Service Family</label>
+                    <div class="multi-select" id="serviceFamilyDropdown">
+                        <button id="serviceFamilyDropdownButton" class="multi-select-trigger" type="button"
+                            aria-haspopup="listbox" aria-expanded="false" disabled>Loading service families...</button>
+                        <div class="multi-select-menu" id="serviceFamilyDropdownMenu" hidden>
+                            <div class="multi-select-actions-bar">
+                                <span id="serviceFamilyMenuStatus">Loading...</span>
+                                <div>
+                                    <button id="btnClearServiceFamily" class="text-button" type="button">Clear</button>
+                                </div>
+                            </div>
+                            <div class="multi-select-search">
+                                <input id="serviceFamilySearch" class="dropdown-search-input" type="text" placeholder="Search service families" />
+                            </div>
+                            <div class="multi-select-options" id="serviceFamilyOptions" role="listbox"
+                                aria-label="Available service families"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-group"><label for="productDropdownButton">Product Name</label>
+                    <div class="multi-select" id="productDropdown">
+                        <button id="productDropdownButton" class="multi-select-trigger" type="button"
+                            aria-haspopup="listbox" aria-expanded="false" disabled>Select service family first</button>
+                        <div class="multi-select-menu" id="productDropdownMenu" hidden>
+                            <div class="multi-select-actions-bar">
+                                <span id="productMenuStatus">Select service family first</span>
+                                <div>
+                                    <button id="btnSelectAllProducts" class="text-button" type="button">Select all</button>
+                                    <button id="btnClearProducts" class="text-button" type="button">Clear</button>
+                                </div>
+                            </div>
+                            <div class="multi-select-search">
+                                <input id="productSearch" class="dropdown-search-input" type="text" placeholder="Search products" />
+                            </div>
+                            <div class="multi-select-options" id="productOptions" role="listbox"
+                                aria-label="Available products"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-group"><label for="skuDropdownButton">SKU Name</label>
+                    <div class="multi-select" id="skuDropdown">
+                        <button id="skuDropdownButton" class="multi-select-trigger" type="button"
+                            aria-haspopup="listbox" aria-expanded="false" disabled>Select product name first</button>
+                        <div class="multi-select-menu" id="skuDropdownMenu" hidden>
+                            <div class="multi-select-actions-bar">
+                                <span id="skuMenuStatus">Select product name first</span>
+                                <div>
+                                    <button id="btnSelectAllSkus" class="text-button" type="button">Select all</button>
+                                    <button id="btnClearSkus" class="text-button" type="button">Clear</button>
+                                </div>
+                            </div>
+                            <div class="multi-select-search">
+                                <input id="skuSearch" class="dropdown-search-input" type="text" placeholder="Search SKUs" />
+                            </div>
+                            <div class="multi-select-options" id="skuOptions" role="listbox"
+                                aria-label="Available SKUs"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="filter-grid">
+                <div class="filter-group"><label for="f_productId">Product ID</label><input id="f_productId"
+                        placeholder="DZH..." /></div>
+                <div class="filter-group"><label for="f_skuId">SKU ID</label><input id="f_skuId" placeholder="DZH..." />
+                </div>
+                <div class="filter-group"><label for="f_serviceName">Service Name</label><input id="f_serviceName"
+                        placeholder="e.g. Virtual Machines" /></div>
+                <div class="filter-group"><label for="f_serviceId">Service ID</label><input id="f_serviceId"
+                        placeholder="DZH..." /></div>
+                <div class="filter-group"><label for="f_priceType">Price Type</label><input id="f_priceType"
+                        placeholder="Consumption / Reservation" /></div>
+                <div class="filter-group"><label for="f_armSkuName">ARM SKU Name</label><input id="f_armSkuName"
+                        placeholder="e.g. Standard_D2s_v3" /></div>
+            </div>
+            <div class="filter-actions">
+                <button id="btnSearch">&#128269; Search</button>
+                <button id="btnClear">&#10005; Clear</button>
+                <button id="btnCopyApiUrl">&#128279; Copy API URL</button>
+                <span class="status" id="statusMsg"></span>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <div class="error-msg" id="errorMsg" style="display:none"></div>
+
+        <div class="view-switcher" role="tablist" aria-label="Pricing views">
+            <button id="btnResultsView" class="view-tab active" type="button" role="tab"
+                aria-selected="true">Results</button>
+            <button id="btnComparisonView" class="view-tab" type="button" role="tab"
+                aria-selected="false">Comparison</button>
+        </div>
+
+        <div id="resultsView" class="view-panel">
+            <div class="results-bar">
+                <span id="countMsg"></span>
+                <button id="btnLoadMore" style="display:none">Load more</button>
+                <button id="btnExportCsv" style="display:none">&#8681; Export CSV</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="priceTable">
+                    <thead>
+                        <tr id="tableHead"></tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="99" class="empty-state">Enter filters and click Search to load prices.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="comparisonView" class="view-panel" hidden>
+            <div class="comparison-summary">
+                <span id="comparisonMsg">Run a search with at least two selected regions to compare prices.</span>
+            </div>
+            <div class="table-wrapper">
+                <table id="comparisonTable">
+                    <thead>
+                        <tr id="comparisonHead"></tr>
+                    </thead>
+                    <tbody id="comparisonBody">
+                        <tr>
+                            <td colspan="99" class="empty-state">Run a search with at least two selected regions to compare prices.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        (() => {
+            'use strict';
+
+            const BASE_URL = 'https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview';
+            const EXCLUDED_PRICE_TYPES = ['DevTestConsumption'];
+            const MAX_REGION_PAGES = 12;
+            const MIN_REGION_COUNT = 65;
+            const MAX_STABLE_REGION_PAGES = 2;
+            const MAX_SERVICE_PAGES = 18;
+            const MIN_SERVICE_FAMILY_COUNT = 18;
+            const MAX_STABLE_SERVICE_PAGES = 3;
+
+            const COLUMNS = [
+                { key: 'armRegionName', label: 'ARM Region' },
+                { key: 'location', label: 'Location' },
+                { key: 'armSkuName', label: 'ARM SKU Name' },
+                { key: 'skuName', label: 'SKU Name' },
+                { key: 'productName', label: 'Product Name' },
+                { key: 'serviceName', label: 'Service Name' },
+                { key: 'serviceFamily', label: 'Service Family' },
+                { key: 'priceType', label: 'Price Type' },
+                { key: 'retailPrice', label: 'Retail Price', price: true },
+                { key: 'unitPrice', label: 'Unit Price', price: true },
+                { key: 'meterName', label: 'Meter Name' },
+                { key: 'meterId', label: 'Meter ID' },
+                { key: 'productId', label: 'Product ID' },
+                { key: 'skuId', label: 'SKU ID' },
+                { key: 'serviceId', label: 'Service ID' },
+                { key: 'effectiveStartDate', label: 'Effective Date' },
+            ];
+
+            const FILTER_MAP = {
+                armRegionName: 'armRegionName',
+                location: 'location',
+                meterId: 'meterId',
+                meterName: 'meterName',
+                productId: 'productId',
+                skuId: 'skuId',
+                productName: 'productName',
+                skuName: 'skuName',
+                serviceName: 'serviceName',
+                serviceId: 'serviceId',
+                serviceFamily: 'serviceFamily',
+                priceType: 'priceType',
+                armSkuName: 'armSkuName',
+            };
+
+            const COMPARISON_BASE_COLUMNS = [
+                { key: 'serviceName', label: 'Service' },
+                { key: 'productName', label: 'Product' },
+                { key: 'armSkuName', label: 'ARM SKU' },
+                { key: 'skuName', label: 'SKU' },
+                { key: 'meterName', label: 'Meter' },
+                { key: 'priceType', label: 'Price Type' },
+            ];
+
+            let nextLink = null;
+            let allRows = [];
+            let sortCol = null;
+            let sortAsc = true;
+            let loading = false;
+            let selectedRegions = [];
+            let selectedProductNames = [];
+            let selectedSkuNames = [];
+            let regionCatalog = [];
+            let serviceCatalog = new Map();
+            let allServiceFamilies = [];
+            let availableProductNames = [];
+            let availableSkuNames = [];
+            let selectedServiceFamily = '';
+            let regionSearchTerm = '';
+            let serviceFamilySearchTerm = '';
+            let productSearchTerm = '';
+            let skuSearchTerm = '';
+
+            const btnSearch = document.getElementById('btnSearch');
+            const btnClear = document.getElementById('btnClear');
+            const btnCopyApiUrl = document.getElementById('btnCopyApiUrl');
+            const btnLoadMore = document.getElementById('btnLoadMore');
+            const btnExportCsv = document.getElementById('btnExportCsv');
+            const btnResultsView = document.getElementById('btnResultsView');
+            const btnComparisonView = document.getElementById('btnComparisonView');
+            const btnSelectAllRegions = document.getElementById('btnSelectAllRegions');
+            const btnClearRegions = document.getElementById('btnClearRegions');
+            const statusMsg = document.getElementById('statusMsg');
+            const countMsg = document.getElementById('countMsg');
+            const errorMsg = document.getElementById('errorMsg');
+            const tableHead = document.getElementById('tableHead');
+            const tableBody = document.getElementById('tableBody');
+            const regionDropdown = document.getElementById('regionDropdown');
+            const regionDropdownButton = document.getElementById('regionDropdownButton');
+            const regionDropdownMenu = document.getElementById('regionDropdownMenu');
+            const regionOptions = document.getElementById('regionOptions');
+            const regionSearchInput = document.getElementById('regionSearch');
+            const regionMenuStatus = document.getElementById('regionMenuStatus');
+            const regionHint = document.getElementById('regionHint');
+            const serviceFamilyDropdown = document.getElementById('serviceFamilyDropdown');
+            const serviceFamilyDropdownButton = document.getElementById('serviceFamilyDropdownButton');
+            const serviceFamilyDropdownMenu = document.getElementById('serviceFamilyDropdownMenu');
+            const serviceFamilyOptions = document.getElementById('serviceFamilyOptions');
+            const serviceFamilySearchInput = document.getElementById('serviceFamilySearch');
+            const serviceFamilyMenuStatus = document.getElementById('serviceFamilyMenuStatus');
+            const btnClearServiceFamily = document.getElementById('btnClearServiceFamily');
+            const productDropdown = document.getElementById('productDropdown');
+            const productDropdownButton = document.getElementById('productDropdownButton');
+            const productDropdownMenu = document.getElementById('productDropdownMenu');
+            const productOptions = document.getElementById('productOptions');
+            const productSearchInput = document.getElementById('productSearch');
+            const productMenuStatus = document.getElementById('productMenuStatus');
+            const btnSelectAllProducts = document.getElementById('btnSelectAllProducts');
+            const btnClearProducts = document.getElementById('btnClearProducts');
+            const skuDropdown = document.getElementById('skuDropdown');
+            const skuDropdownButton = document.getElementById('skuDropdownButton');
+            const skuDropdownMenu = document.getElementById('skuDropdownMenu');
+            const skuOptions = document.getElementById('skuOptions');
+            const skuSearchInput = document.getElementById('skuSearch');
+            const skuMenuStatus = document.getElementById('skuMenuStatus');
+            const btnSelectAllSkus = document.getElementById('btnSelectAllSkus');
+            const btnClearSkus = document.getElementById('btnClearSkus');
+            const resultsView = document.getElementById('resultsView');
+            const comparisonView = document.getElementById('comparisonView');
+            const comparisonMsg = document.getElementById('comparisonMsg');
+            const comparisonHead = document.getElementById('comparisonHead');
+            const comparisonBody = document.getElementById('comparisonBody');
+
+            function setSelectOptions(selectElement, options, defaultLabel) {
+                const fragment = document.createDocumentFragment();
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = defaultLabel;
+                fragment.appendChild(defaultOption);
+
+                options.forEach(optionValue => {
+                    const option = document.createElement('option');
+                    option.value = optionValue;
+                    option.textContent = optionValue;
+                    fragment.appendChild(option);
+                });
+
+                selectElement.innerHTML = '';
+                selectElement.appendChild(fragment);
+            }
+
+            function formatPrice(value, unitOfMeasure, currencyCode, reservationTerm) {
+                if (value === undefined || value === null || value === '') return 'N/A';
+                const effectiveUnit = String(reservationTerm || '').trim() || String(unitOfMeasure || '').trim();
+                const unit = effectiveUnit || 'N/A';
+                const currency = String(currencyCode || '').trim();
+                const formattedValue = Number(value).toFixed(10).replace(/\.?0+$/, '');
+                return `${formattedValue}${currency ? ` ${currency}` : ''} / ${unit}`;
+            }
+
+            function normalizeComparisonPrice(value) {
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : null;
+            }
+
+            function buildExactMatchClause(field, values) {
+                if (values.length === 1) {
+                    return `${field} eq '${values[0].replace(/'/g, "''")}'`;
+                }
+                return `(${values.map(value => `${field} eq '${value.replace(/'/g, "''")}'`).join(' or ')})`;
+            }
+
+            function getRegionLabel(regionName) {
+                const match = regionCatalog.find(region => region.name === regionName);
+                return match?.displayName || regionName;
+            }
+
+            function toggleDropdown(menuEl, buttonEl, forceOpen) {
+                const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : menuEl.hidden;
+                menuEl.hidden = !shouldOpen;
+                buttonEl.setAttribute('aria-expanded', String(shouldOpen));
+            }
+
+            function updateRegionSelectionState() {
+                if (!regionCatalog.length) return;
+                if (!selectedRegions.length) {
+                    regionDropdownButton.textContent = 'Select region(s)';
+                } else if (selectedRegions.length === 1) {
+                    regionDropdownButton.textContent = getRegionLabel(selectedRegions[0]);
+                } else {
+                    regionDropdownButton.textContent = `${selectedRegions.length} regions selected`;
+                }
+
+                regionMenuStatus.textContent = selectedRegions.length
+                    ? `${selectedRegions.length} of ${regionCatalog.length} region(s) selected`
+                    : `0 of ${regionCatalog.length} region(s) selected`;
+            }
+
+            function renderRegionOptions() {
+                regionOptions.innerHTML = '';
+                if (!regionCatalog.length) {
+                    regionOptions.innerHTML = '<div class="empty-state">No regions available.</div>';
+                    return;
+                }
+
+                const normalizedQuery = regionSearchTerm.toLowerCase();
+                const filteredRegions = regionCatalog.filter(region => {
+                    if (!normalizedQuery) return true;
+                    return region.displayName.toLowerCase().includes(normalizedQuery)
+                        || region.name.toLowerCase().includes(normalizedQuery);
+                });
+
+                if (!filteredRegions.length) {
+                    regionOptions.innerHTML = '<div class="empty-state">No matching regions.</div>';
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                filteredRegions.forEach(region => {
+                    const label = document.createElement('label');
+                    label.className = 'multi-select-option';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = region.name;
+                    checkbox.checked = selectedRegions.includes(region.name);
+                    checkbox.addEventListener('change', () => {
+                        if (checkbox.checked) {
+                            selectedRegions = [...selectedRegions, region.name];
+                        } else {
+                            selectedRegions = selectedRegions.filter(value => value !== region.name);
+                        }
+                        updateRegionSelectionState();
+                        renderComparisonView();
+                    });
+
+                    const text = document.createElement('span');
+                    text.className = 'multi-select-option-text';
+                    const title = document.createElement('strong');
+                    title.textContent = region.displayName;
+                    const code = document.createElement('span');
+                    code.textContent = region.name;
+
+                    text.appendChild(title);
+                    text.appendChild(code);
+                    label.appendChild(checkbox);
+                    label.appendChild(text);
+                    fragment.appendChild(label);
+                });
+
+                regionOptions.appendChild(fragment);
+                updateRegionSelectionState();
+            }
+
+            function updateProductSelectionState() {
+                if (!availableProductNames.length) return;
+
+                if (!selectedProductNames.length) {
+                    productDropdownButton.textContent = 'Select product name(s)';
+                } else if (selectedProductNames.length === 1) {
+                    productDropdownButton.textContent = selectedProductNames[0];
+                } else {
+                    productDropdownButton.textContent = `${selectedProductNames.length} products selected`;
+                }
+
+                productMenuStatus.textContent = selectedProductNames.length
+                    ? `${selectedProductNames.length} of ${availableProductNames.length} product(s) selected`
+                    : `0 of ${availableProductNames.length} product(s) selected`;
+            }
+
+            function renderProductOptions() {
+                productOptions.innerHTML = '';
+                if (!availableProductNames.length) {
+                    productOptions.innerHTML = '<div class="empty-state">No products available.</div>';
+                    return;
+                }
+
+                const normalizedQuery = productSearchTerm.toLowerCase();
+                const filteredProducts = availableProductNames.filter(productName =>
+                    !normalizedQuery || productName.toLowerCase().includes(normalizedQuery)
+                );
+
+                if (!filteredProducts.length) {
+                    productOptions.innerHTML = '<div class="empty-state">No matching products.</div>';
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                filteredProducts.forEach(productName => {
+                    const label = document.createElement('label');
+                    label.className = 'multi-select-option';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = productName;
+                    checkbox.checked = selectedProductNames.includes(productName);
+                    checkbox.addEventListener('change', () => {
+                        if (checkbox.checked) {
+                            selectedProductNames = [...selectedProductNames, productName];
+                        } else {
+                            selectedProductNames = selectedProductNames.filter(value => value !== productName);
+                        }
+                        updateProductSelectionState();
+                        renderSkuNameOptions(selectedServiceFamily, selectedProductNames);
+                    });
+
+                    const text = document.createElement('span');
+                    text.className = 'multi-select-option-text';
+                    const title = document.createElement('strong');
+                    title.textContent = productName;
+                    text.appendChild(title);
+
+                    label.appendChild(checkbox);
+                    label.appendChild(text);
+                    fragment.appendChild(label);
+                });
+
+                productOptions.appendChild(fragment);
+                updateProductSelectionState();
+            }
+
+            function updateSkuSelectionState() {
+                if (!availableSkuNames.length) return;
+
+                if (!selectedSkuNames.length) {
+                    skuDropdownButton.textContent = 'Select SKU name(s)';
+                } else if (selectedSkuNames.length === 1) {
+                    skuDropdownButton.textContent = selectedSkuNames[0];
+                } else {
+                    skuDropdownButton.textContent = `${selectedSkuNames.length} SKUs selected`;
+                }
+
+                skuMenuStatus.textContent = selectedSkuNames.length
+                    ? `${selectedSkuNames.length} of ${availableSkuNames.length} SKU(s) selected`
+                    : `0 of ${availableSkuNames.length} SKU(s) selected`;
+            }
+
+            function renderSkuOptions() {
+                skuOptions.innerHTML = '';
+                if (!availableSkuNames.length) {
+                    skuOptions.innerHTML = '<div class="empty-state">No SKUs available.</div>';
+                    return;
+                }
+
+                const normalizedQuery = skuSearchTerm.toLowerCase();
+                const filteredSkus = availableSkuNames.filter(skuName =>
+                    !normalizedQuery || skuName.toLowerCase().includes(normalizedQuery)
+                );
+
+                if (!filteredSkus.length) {
+                    skuOptions.innerHTML = '<div class="empty-state">No matching SKUs.</div>';
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                filteredSkus.forEach(skuName => {
+                    const label = document.createElement('label');
+                    label.className = 'multi-select-option';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = skuName;
+                    checkbox.checked = selectedSkuNames.includes(skuName);
+                    checkbox.addEventListener('change', () => {
+                        if (checkbox.checked) {
+                            selectedSkuNames = [...selectedSkuNames, skuName];
+                        } else {
+                            selectedSkuNames = selectedSkuNames.filter(value => value !== skuName);
+                        }
+                        updateSkuSelectionState();
+                    });
+
+                    const text = document.createElement('span');
+                    text.className = 'multi-select-option-text';
+                    const title = document.createElement('strong');
+                    title.textContent = skuName;
+                    text.appendChild(title);
+
+                    label.appendChild(checkbox);
+                    label.appendChild(text);
+                    fragment.appendChild(label);
+                });
+
+                skuOptions.appendChild(fragment);
+                updateSkuSelectionState();
+            }
+
+            function renderSkuNameOptions(serviceFamily, productNames) {
+                if (!serviceFamily || !productNames.length) {
+                    availableSkuNames = [];
+                    selectedSkuNames = [];
+                    skuSearchTerm = '';
+                    skuSearchInput.value = '';
+                    skuDropdownButton.disabled = true;
+                    skuDropdownButton.textContent = 'Select product name first';
+                    skuMenuStatus.textContent = 'Select product name first';
+                    skuOptions.innerHTML = '<div class="empty-state">Select product name first.</div>';
+                    return;
+                }
+
+                const productCatalog = serviceCatalog.get(serviceFamily) || new Map();
+                const skuSet = new Set();
+                productNames.forEach(productName => {
+                    const skusForProduct = productCatalog.get(productName) || new Set();
+                    skusForProduct.forEach(skuName => skuSet.add(skuName));
+                });
+
+                availableSkuNames = Array.from(skuSet).sort((left, right) => left.localeCompare(right));
+                selectedSkuNames = selectedSkuNames.filter(name => availableSkuNames.includes(name));
+
+                if (!availableSkuNames.length) {
+                    selectedSkuNames = [];
+                    skuDropdownButton.disabled = true;
+                    skuDropdownButton.textContent = 'No SKUs available';
+                    skuMenuStatus.textContent = 'No SKUs available';
+                    skuOptions.innerHTML = '<div class="empty-state">No SKUs available.</div>';
+                    return;
+                }
+
+                skuDropdownButton.disabled = false;
+                renderSkuOptions();
+            }
+
+            function renderProductNameOptions(serviceFamily) {
+                if (!serviceFamily) {
+                    availableProductNames = [];
+                    selectedProductNames = [];
+                    productSearchTerm = '';
+                    productSearchInput.value = '';
+                    productDropdownButton.disabled = true;
+                    productDropdownButton.textContent = 'Select service family first';
+                    productMenuStatus.textContent = 'Select service family first';
+                    productOptions.innerHTML = '<div class="empty-state">Select service family first.</div>';
+                    renderSkuNameOptions('', []);
+                    return;
+                }
+
+                availableProductNames = Array.from((serviceCatalog.get(serviceFamily) || new Map()).keys())
+                    .sort((left, right) => left.localeCompare(right));
+                selectedProductNames = selectedProductNames.filter(name => availableProductNames.includes(name));
+
+                if (!availableProductNames.length) {
+                    selectedProductNames = [];
+                    productDropdownButton.disabled = true;
+                    productDropdownButton.textContent = 'No products available';
+                    productMenuStatus.textContent = 'No products available';
+                    productOptions.innerHTML = '<div class="empty-state">No products available.</div>';
+                    renderSkuNameOptions('', []);
+                    return;
+                }
+
+                productDropdownButton.disabled = false;
+                renderProductOptions();
+                renderSkuNameOptions(serviceFamily, selectedProductNames);
+            }
+
+            async function loadRegionCatalog() {
+                regionDropdownButton.disabled = true;
+                regionMenuStatus.textContent = 'Loading available regions...';
+                regionHint.textContent = 'Loading Azure retail pricing metadata for regions...';
+
+                try {
+                    regionCatalog = await collectRegionsFromPricing();
+                    regionMenuStatus.textContent = `Loaded ${regionCatalog.length} region(s) from Azure pricing metadata`;
+                    regionHint.textContent = 'Choose 2 or more regions to compare identical SKUs side by side.';
+                } catch (error) {
+                    regionCatalog = [];
+                    regionMenuStatus.textContent = 'Failed to load regions';
+                    regionHint.textContent = 'Region metadata could not be loaded right now.';
+                    showError(`Unable to load region metadata: ${error.message}`);
+                } finally {
+                    regionDropdownButton.disabled = false;
+                    renderRegionOptions();
+                }
+            }
+
+            async function collectRegionsFromPricing() {
+                const regionMap = new Map();
+                let url = BASE_URL;
+                let stablePages = 0;
+
+                for (let pageIndex = 0; url && pageIndex < MAX_REGION_PAGES; pageIndex += 1) {
+                    const data = await fetchPage(url);
+                    let newRegions = 0;
+
+                    (data.Items || []).forEach(item => {
+                        const regionName = String(item.armRegionName || '').trim();
+                        if (!regionName) return;
+
+                        if (!regionMap.has(regionName)) {
+                            regionMap.set(regionName, {
+                                name: regionName,
+                                displayName: String(item.location || regionName).trim() || regionName,
+                            });
+                            newRegions += 1;
+                        }
+                    });
+
+                    stablePages = newRegions === 0 ? stablePages + 1 : 0;
+                    if (regionMap.size >= MIN_REGION_COUNT && stablePages >= MAX_STABLE_REGION_PAGES) break;
+                    url = data.NextPageLink || null;
+                }
+
+                if (!regionMap.size) throw new Error('No region entries were returned by the pricing API.');
+                return Array.from(regionMap.values()).sort((left, right) =>
+                    left.displayName.localeCompare(right.displayName)
+                );
+            }
+
+            async function loadServiceCatalog() {
+                serviceFamilyDropdownButton.disabled = true;
+                serviceFamilyDropdownButton.textContent = 'Loading service families...';
+                serviceFamilyMenuStatus.textContent = 'Loading...';
+                productDropdownButton.disabled = true;
+                skuDropdownButton.disabled = true;
+                productDropdownButton.textContent = 'Select service family first';
+                productMenuStatus.textContent = 'Select service family first';
+                productOptions.innerHTML = '<div class="empty-state">Select service family first.</div>';
+                skuDropdownButton.textContent = 'Select product name first';
+                skuMenuStatus.textContent = 'Select product name first';
+                skuOptions.innerHTML = '<div class="empty-state">Select product name first.</div>';
+
+                try {
+                    serviceCatalog = await collectServiceCatalogFromPricing();
+                    renderServiceFamilyOptions();
+                } catch (error) {
+                    serviceCatalog = new Map();
+                    serviceFamilyDropdownButton.textContent = 'Unable to load service families';
+                    serviceFamilyMenuStatus.textContent = 'Failed to load';
+                    showError(`Unable to load service catalog: ${error.message}`);
+                }
+            }
+
+            function updateServiceFamilySelectionState() {
+                if (!allServiceFamilies.length) return;
+                serviceFamilyDropdownButton.textContent = selectedServiceFamily || 'Any service family';
+                serviceFamilyMenuStatus.textContent = selectedServiceFamily
+                    ? `Selected: ${selectedServiceFamily}`
+                    : `${allServiceFamilies.length} service families available`;
+            }
+
+            function renderServiceFamilyOptions() {
+                allServiceFamilies = Array.from(serviceCatalog.keys()).sort((left, right) => left.localeCompare(right));
+
+                if (!allServiceFamilies.length) {
+                    serviceFamilyDropdownButton.disabled = true;
+                    serviceFamilyDropdownButton.textContent = 'No service families available';
+                    serviceFamilyMenuStatus.textContent = 'No service families available';
+                    serviceFamilyOptions.innerHTML = '<div class="empty-state">No service families available.</div>';
+                    renderProductNameOptions('');
+                    return;
+                }
+
+                const normalizedQuery = serviceFamilySearchTerm.toLowerCase();
+                const filtered = allServiceFamilies.filter(family =>
+                    !normalizedQuery || family.toLowerCase().includes(normalizedQuery)
+                );
+
+                serviceFamilyDropdownButton.disabled = false;
+
+                if (!filtered.length) {
+                    serviceFamilyOptions.innerHTML = '<div class="empty-state">No matching service families.</div>';
+                    updateServiceFamilySelectionState();
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                filtered.forEach(family => {
+                    const label = document.createElement('label');
+                    label.className = 'multi-select-option';
+
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'serviceFamily';
+                    radio.value = family;
+                    radio.checked = selectedServiceFamily === family;
+                    radio.addEventListener('change', () => {
+                        selectedServiceFamily = family;
+                        selectedProductNames = [];
+                        selectedSkuNames = [];
+                        updateServiceFamilySelectionState();
+                        toggleDropdown(serviceFamilyDropdownMenu, serviceFamilyDropdownButton, false);
+                        renderProductNameOptions(selectedServiceFamily);
+                    });
+
+                    const text = document.createElement('span');
+                    text.className = 'multi-select-option-text';
+                    const title = document.createElement('strong');
+                    title.textContent = family;
+                    text.appendChild(title);
+
+                    label.appendChild(radio);
+                    label.appendChild(text);
+                    fragment.appendChild(label);
+                });
+
+                serviceFamilyOptions.innerHTML = '';
+                serviceFamilyOptions.appendChild(fragment);
+                updateServiceFamilySelectionState();
+            }
+
+            async function collectServiceCatalogFromPricing() {
+                const catalog = new Map();
+                let url = BASE_URL;
+                let stablePages = 0;
+
+                for (let pageIndex = 0; url && pageIndex < MAX_SERVICE_PAGES; pageIndex += 1) {
+                    const data = await fetchPage(url);
+                    let newEntries = 0;
+
+                    (data.Items || []).forEach(item => {
+                        const serviceFamily = String(item.serviceFamily || '').trim();
+                        const productName = String(item.productName || '').trim();
+                        const skuName = String(item.skuName || '').trim();
+                        if (!serviceFamily) return;
+
+                        if (!catalog.has(serviceFamily)) {
+                            catalog.set(serviceFamily, new Map());
+                            newEntries += 1;
+                        }
+
+                        if (!productName) return;
+                        const productMap = catalog.get(serviceFamily);
+
+                        if (!productMap.has(productName)) {
+                            productMap.set(productName, new Set());
+                            newEntries += 1;
+                        }
+
+                        if (skuName && !productMap.get(productName).has(skuName)) {
+                            productMap.get(productName).add(skuName);
+                            newEntries += 1;
+                        }
+                    });
+
+                    stablePages = newEntries === 0 ? stablePages + 1 : 0;
+                    if (catalog.size >= MIN_SERVICE_FAMILY_COUNT && stablePages >= MAX_STABLE_SERVICE_PAGES) break;
+                    url = data.NextPageLink || null;
+                }
+
+                if (!catalog.size) throw new Error('No service families were returned by the pricing API.');
+                return catalog;
+            }
+
+            function setActiveView(viewName) {
+                const isResultsView = viewName === 'results';
+                resultsView.hidden = !isResultsView;
+                comparisonView.hidden = isResultsView;
+                btnResultsView.classList.toggle('active', isResultsView);
+                btnComparisonView.classList.toggle('active', !isResultsView);
+                btnResultsView.setAttribute('aria-selected', String(isResultsView));
+                btnComparisonView.setAttribute('aria-selected', String(!isResultsView));
+            }
+
+            function buildComparisonDataset() {
+                if (selectedRegions.length < 2) return { message: 'Select at least two regions to compare prices.', rows: [] };
+                if (!allRows.length) return { message: 'Run a search to generate comparison data.', rows: [] };
+
+                const comparisonGroups = new Map();
+                allRows
+                    .filter(row => selectedRegions.includes(row.armRegionName))
+                    .forEach(row => {
+                        const groupKey = [
+                            row.serviceName ?? '',
+                            row.productName ?? '',
+                            row.armSkuName || row.skuName || '',
+                            row.skuName ?? '',
+                            row.meterName ?? '',
+                            row.priceType ?? row.type ?? '',
+                            row.unitOfMeasure ?? '',
+                            row.currencyCode ?? '',
+                        ].join('||');
+
+                        if (!comparisonGroups.has(groupKey)) {
+                            comparisonGroups.set(groupKey, {
+                                serviceName: row.serviceName ?? '',
+                                productName: row.productName ?? '',
+                                armSkuName: row.armSkuName ?? '',
+                                skuName: row.skuName ?? '',
+                                meterName: row.meterName ?? '',
+                                priceType: row.priceType ?? row.type ?? '',
+                                unitOfMeasure: row.unitOfMeasure ?? '',
+                                currencyCode: row.currencyCode ?? '',
+                                regions: new Map(),
+                            });
+                        }
+
+                        const group = comparisonGroups.get(groupKey);
+                        const currentPrice = normalizeComparisonPrice(row.retailPrice);
+                        const existing = group.regions.get(row.armRegionName);
+                        const existingPrice = normalizeComparisonPrice(existing?.retailPrice);
+                        if (!existing || existingPrice === null || (currentPrice !== null && currentPrice < existingPrice)) {
+                            group.regions.set(row.armRegionName, row);
+                        }
+                    });
+
+                const rows = Array.from(comparisonGroups.values())
+                    .filter(group => group.regions.size >= 2)
+                    .sort((left, right) => {
+                        const serviceComparison = left.serviceName.localeCompare(right.serviceName);
+                        if (serviceComparison !== 0) return serviceComparison;
+                        const productComparison = left.productName.localeCompare(right.productName);
+                        if (productComparison !== 0) return productComparison;
+                        return (left.armSkuName || left.skuName).localeCompare(right.armSkuName || right.skuName);
+                    });
+
+                if (!rows.length) {
+                    return { message: 'No identical SKUs were found across the selected regions in the loaded results.', rows: [] };
+                }
+
+                return {
+                    message: `Compared ${rows.length} SKU(s) across ${selectedRegions.length} selected region(s).`,
+                    rows,
+                };
+            }
+
+            function renderComparisonView() {
+                const comparisonData = buildComparisonDataset();
+                comparisonMsg.textContent = comparisonData.message;
+                comparisonHead.innerHTML = '';
+                comparisonBody.innerHTML = '';
+
+                if (!comparisonData.rows.length) {
+                    comparisonBody.innerHTML = `<tr><td colspan="99" class="empty-state">${comparisonData.message}</td></tr>`;
+                    return;
+                }
+
+                const headerFragment = document.createDocumentFragment();
+                COMPARISON_BASE_COLUMNS.forEach(column => {
+                    const th = document.createElement('th');
+                    th.textContent = column.label;
+                    headerFragment.appendChild(th);
+                });
+
+                selectedRegions.forEach(regionName => {
+                    const th = document.createElement('th');
+                    th.textContent = getRegionLabel(regionName);
+                    headerFragment.appendChild(th);
+                });
+
+                comparisonHead.appendChild(headerFragment);
+
+                const rowFragment = document.createDocumentFragment();
+                comparisonData.rows.forEach(group => {
+                    const tr = document.createElement('tr');
+
+                    COMPARISON_BASE_COLUMNS.forEach(column => {
+                        const td = document.createElement('td');
+                        td.textContent = group[column.key] || '';
+                        td.title = td.textContent;
+                        tr.appendChild(td);
+                    });
+
+                    const availablePrices = selectedRegions
+                        .map(regionName => normalizeComparisonPrice(group.regions.get(regionName)?.retailPrice))
+                        .filter(price => price !== null);
+                    const lowestPrice = availablePrices.length ? Math.min(...availablePrices) : null;
+
+                    selectedRegions.forEach(regionName => {
+                        const td = document.createElement('td');
+                        td.className = 'price comparison-cell';
+                        const regionRow = group.regions.get(regionName);
+
+                        if (!regionRow) {
+                            td.classList.add('empty');
+                            td.textContent = 'N/A';
+                            tr.appendChild(td);
+                            return;
+                        }
+
+                        const price = normalizeComparisonPrice(regionRow.retailPrice);
+                        td.textContent = formatPrice(regionRow.retailPrice, regionRow.unitOfMeasure, regionRow.currencyCode, regionRow.reservationTerm);
+
+                        if (lowestPrice !== null && price !== null) {
+                            const delta = document.createElement('span');
+                            delta.className = 'delta';
+                            delta.textContent = price === lowestPrice
+                                ? 'Lowest selected price'
+                                : `+${(price - lowestPrice).toFixed(6).replace(/\.?0+$/, '')} vs lowest`;
+                            td.appendChild(delta);
+                        }
+
+                        tr.appendChild(td);
+                    });
+
+                    rowFragment.appendChild(tr);
+                });
+
+                comparisonBody.appendChild(rowFragment);
+            }
+
+            function buildHeader() {
+                tableHead.innerHTML = '';
+                COLUMNS.forEach(col => {
+                    const th = document.createElement('th');
+                    th.dataset.key = col.key;
+                    th.innerHTML = col.label + '<span class="sort-arrow">▲</span>';
+                    th.addEventListener('click', () => onSort(col.key));
+                    tableHead.appendChild(th);
+                });
+            }
+
+            function buildFilter() {
+                const parts = [];
+
+                for (const [inputId, odataField] of Object.entries(FILTER_MAP)) {
+                    if (inputId === 'armRegionName') {
+                        if (selectedRegions.length) parts.push(buildExactMatchClause(odataField, selectedRegions));
+                        continue;
+                    }
+
+                    if (inputId === 'productName') {
+                        if (selectedProductNames.length) parts.push(buildExactMatchClause(odataField, selectedProductNames));
+                        continue;
+                    }
+
+                    if (inputId === 'skuName') {
+                        if (selectedSkuNames.length) parts.push(buildExactMatchClause(odataField, selectedSkuNames));
+                        continue;
+                    }
+
+                    if (inputId === 'serviceFamily') {
+                        if (selectedServiceFamily) parts.push(buildExactMatchClause(odataField, [selectedServiceFamily]));
+                        continue;
+                    }
+
+                    const el = document.getElementById('f_' + inputId);
+                    if (!el) continue;
+
+                    const val = el.value.trim();
+                    if (!val) continue;
+
+                    const exactFields = new Set(['meterId', 'productId', 'skuId', 'serviceId', 'priceType', 'armRegionName', 'armSkuName', 'serviceFamily', 'productName', 'skuName']);
+                    if (exactFields.has(inputId)) {
+                        parts.push(buildExactMatchClause(odataField, [val]));
+                    } else {
+                        parts.push(`contains(tolower(${odataField}), '${val.toLowerCase().replace(/'/g, "''")}')`);
+                    }
+                }
+
+                return parts.join(' and ');
+            }
+
+            function buildEffectiveFilter() {
+                const userFilter = buildFilter();
+                const excludedTypeClause = EXCLUDED_PRICE_TYPES
+                    .map(type => `type ne '${type.replace(/'/g, "''")}'`)
+                    .join(' and ');
+
+                if (userFilter && excludedTypeClause) return `(${userFilter}) and ${excludedTypeClause}`;
+                return userFilter || excludedTypeClause;
+            }
+
+            async function fetchPage(url) {
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error(`API error ${resp.status}: ${resp.statusText}`);
+                return resp.json();
+            }
+
+            async function doSearch() {
+                if (loading) return;
+                allRows = [];
+                nextLink = null;
+                sortCol = null;
+                sortAsc = true;
+                hideError();
+                renderTable();
+
+                const filterStr = buildEffectiveFilter();
+                let url = BASE_URL;
+                if (filterStr) url += '&$filter=' + encodeURIComponent(filterStr);
+
+                await loadPage(url, true);
+            }
+
+            async function loadPage(url, fresh = false) {
+                loading = true;
+                btnSearch.disabled = true;
+                btnLoadMore.disabled = true;
+                setStatus('<span class="spinner"></span>Loading…');
+
+                try {
+                    const data = await fetchPage(url);
+                    const items = (data.Items || []).filter(item => !EXCLUDED_PRICE_TYPES.includes(String(item.type || '').trim()));
+                    allRows = fresh ? items : [...allRows, ...items];
+                    nextLink = data.NextPageLink || null;
+
+                    renderTable();
+                    const total = data.Count !== undefined ? data.Count : '?';
+                    countMsg.textContent = `Showing ${allRows.length} item(s)${total !== '?' ? ' of ~' + total + ' total' : ''}`;
+                    btnLoadMore.style.display = nextLink ? 'inline-block' : 'none';
+                    btnLoadMore.disabled = false;
+                    btnExportCsv.style.display = allRows.length ? 'inline-block' : 'none';
+                    setStatus(nextLink ? 'More pages available.' : 'All results loaded.');
+                    renderComparisonView();
+                } catch (err) {
+                    showError(err.message);
+                    setStatus('');
+                } finally {
+                    loading = false;
+                    btnSearch.disabled = false;
+                }
+            }
+
+            function renderTable() {
+                let rows = [...allRows];
+
+                if (sortCol) {
+                    rows.sort((a, b) => {
+                        const av = a[sortCol] ?? '';
+                        const bv = b[sortCol] ?? '';
+                        const cmp = typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv));
+                        return sortAsc ? cmp : -cmp;
+                    });
+                }
+
+                tableHead.querySelectorAll('th').forEach(th => {
+                    const arrow = th.querySelector('.sort-arrow');
+                    if (th.dataset.key === sortCol) {
+                        th.classList.add('sorted');
+                        arrow.textContent = sortAsc ? '▲' : '▼';
+                    } else {
+                        th.classList.remove('sorted');
+                        arrow.textContent = '▲';
+                    }
+                });
+
+                if (!rows.length) {
+                    tableBody.innerHTML = '<tr><td colspan="99" class="empty-state">No results found.</td></tr>';
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                rows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    COLUMNS.forEach(col => {
+                        const td = document.createElement('td');
+                        const val = row[col.key];
+                        if (col.price && val !== undefined) {
+                            td.className = 'price';
+                            td.textContent = formatPrice(val, row.unitOfMeasure, row.currencyCode, row.reservationTerm);
+                        } else {
+                            td.textContent = val ?? '';
+                        }
+                        td.title = td.textContent;
+                        tr.appendChild(td);
+                    });
+                    fragment.appendChild(tr);
+                });
+
+                tableBody.innerHTML = '';
+                tableBody.appendChild(fragment);
+            }
+
+            function onSort(key) {
+                if (sortCol === key) sortAsc = !sortAsc;
+                else {
+                    sortCol = key;
+                    sortAsc = true;
+                }
+                renderTable();
+            }
+
+            function doClear() {
+                document.querySelectorAll('.filter-group input').forEach(i => i.value = '');
+                selectedServiceFamily = '';
+                selectedProductNames = [];
+                selectedSkuNames = [];
+                regionSearchTerm = '';
+                serviceFamilySearchTerm = '';
+                productSearchTerm = '';
+                skuSearchTerm = '';
+                renderProductNameOptions('');
+                selectedRegions = [];
+                renderRegionOptions();
+                renderServiceFamilyOptions();
+                toggleDropdown(regionDropdownMenu, regionDropdownButton, false);
+                toggleDropdown(serviceFamilyDropdownMenu, serviceFamilyDropdownButton, false);
+                toggleDropdown(productDropdownMenu, productDropdownButton, false);
+                toggleDropdown(skuDropdownMenu, skuDropdownButton, false);
+                allRows = [];
+                nextLink = null;
+                sortCol = null;
+                sortAsc = true;
+                hideError();
+                setStatus('');
+                countMsg.textContent = '';
+                btnLoadMore.style.display = 'none';
+                btnExportCsv.style.display = 'none';
+                tableBody.innerHTML = '<tr><td colspan="99" class="empty-state">Enter filters and click Search to load prices.</td></tr>';
+                renderComparisonView();
+            }
+
+            function setStatus(html) { statusMsg.innerHTML = html; }
+            function showError(msg) { errorMsg.textContent = msg; errorMsg.style.display = 'block'; }
+            function hideError() { errorMsg.style.display = 'none'; }
+
+            function exportToCsv() {
+                if (!allRows.length) return;
+                const escape = val => {
+                    const str = val === undefined || val === null
+                        ? ''
+                        : (typeof val === 'object' ? JSON.stringify(val) : String(val));
+                    return str.includes(',') || str.includes('"') || str.includes('\n')
+                        ? `"${str.replace(/"/g, '""')}"`
+                        : str;
+                };
+
+                const headerKeys = [];
+                const seenKeys = new Set();
+                allRows.forEach(row => {
+                    Object.keys(row || {}).forEach(key => {
+                        if (!seenKeys.has(key)) {
+                            seenKeys.add(key);
+                            headerKeys.push(key);
+                        }
+                    });
+                });
+
+                const header = headerKeys.map(key => escape(key)).join(',');
+                const rows = allRows.map(row =>
+                    headerKeys.map(key => escape(row[key])).join(',')
+                );
+                const csv = [header, ...rows].join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `azure-pricing-${new Date().toISOString().slice(0, 10)}.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+
+            async function copyApiUrlWithFilters() {
+                const filterStr = buildEffectiveFilter();
+                let url = BASE_URL;
+                if (filterStr) url += '&$filter=' + encodeURIComponent(filterStr);
+
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(url);
+                    } else {
+                        const helperInput = document.createElement('textarea');
+                        helperInput.value = url;
+                        helperInput.setAttribute('readonly', '');
+                        helperInput.style.position = 'absolute';
+                        helperInput.style.left = '-9999px';
+                        document.body.appendChild(helperInput);
+                        helperInput.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(helperInput);
+                    }
+                    setStatus('API URL copied to clipboard.');
+                } catch (error) {
+                    showError(`Unable to copy API URL: ${error.message}`);
+                }
+            }
+
+            btnSearch.addEventListener('click', doSearch);
+            btnClear.addEventListener('click', doClear);
+            btnCopyApiUrl.addEventListener('click', copyApiUrlWithFilters);
+            btnLoadMore.addEventListener('click', () => { if (nextLink) loadPage(nextLink); });
+            btnExportCsv.addEventListener('click', exportToCsv);
+            btnResultsView.addEventListener('click', () => setActiveView('results'));
+            btnComparisonView.addEventListener('click', () => setActiveView('comparison'));
+
+            btnSelectAllRegions.addEventListener('click', () => {
+                selectedRegions = regionCatalog.map(region => region.name);
+                renderRegionOptions();
+                renderComparisonView();
+            });
+            btnClearRegions.addEventListener('click', () => {
+                selectedRegions = [];
+                renderRegionOptions();
+                renderComparisonView();
+            });
+
+            btnSelectAllProducts.addEventListener('click', () => {
+                selectedProductNames = [...availableProductNames];
+                renderProductOptions();
+                renderSkuNameOptions(selectedServiceFamily, selectedProductNames);
+            });
+            btnClearProducts.addEventListener('click', () => {
+                selectedProductNames = [];
+                renderProductOptions();
+                renderSkuNameOptions(selectedServiceFamily, selectedProductNames);
+            });
+
+            btnSelectAllSkus.addEventListener('click', () => {
+                selectedSkuNames = [...availableSkuNames];
+                renderSkuOptions();
+            });
+            btnClearSkus.addEventListener('click', () => {
+                selectedSkuNames = [];
+                renderSkuOptions();
+            });
+
+            btnClearServiceFamily.addEventListener('click', () => {
+                selectedServiceFamily = '';
+                selectedProductNames = [];
+                selectedSkuNames = [];
+                serviceFamilySearchTerm = '';
+                serviceFamilySearchInput.value = '';
+                renderServiceFamilyOptions();
+                renderProductNameOptions('');
+            });
+
+            regionSearchInput.addEventListener('input', () => {
+                regionSearchTerm = regionSearchInput.value.trim();
+                renderRegionOptions();
+            });
+
+            serviceFamilySearchInput.addEventListener('input', () => {
+                serviceFamilySearchTerm = serviceFamilySearchInput.value.trim();
+                renderServiceFamilyOptions();
+            });
+
+            productSearchInput.addEventListener('input', () => {
+                productSearchTerm = productSearchInput.value.trim();
+                renderProductOptions();
+            });
+
+            skuSearchInput.addEventListener('input', () => {
+                skuSearchTerm = skuSearchInput.value.trim();
+                renderSkuOptions();
+            });
+
+            regionDropdownButton.addEventListener('click', () => toggleDropdown(regionDropdownMenu, regionDropdownButton));
+            serviceFamilyDropdownButton.addEventListener('click', () => toggleDropdown(serviceFamilyDropdownMenu, serviceFamilyDropdownButton));
+            productDropdownButton.addEventListener('click', () => toggleDropdown(productDropdownMenu, productDropdownButton));
+            skuDropdownButton.addEventListener('click', () => toggleDropdown(skuDropdownMenu, skuDropdownButton));
+
+            document.addEventListener('click', event => {
+                if (!regionDropdown.contains(event.target)) toggleDropdown(regionDropdownMenu, regionDropdownButton, false);
+                if (!serviceFamilyDropdown.contains(event.target)) toggleDropdown(serviceFamilyDropdownMenu, serviceFamilyDropdownButton, false);
+                if (!productDropdown.contains(event.target)) toggleDropdown(productDropdownMenu, productDropdownButton, false);
+                if (!skuDropdown.contains(event.target)) toggleDropdown(skuDropdownMenu, skuDropdownButton, false);
+            });
+
+            document.querySelectorAll('.filter-group input:not(.dropdown-search-input)').forEach(input => {
+                input.addEventListener('keydown', event => { if (event.key === 'Enter') doSearch(); });
+            });
+
+            buildHeader();
+            renderComparisonView();
+            setActiveView('results');
+            loadRegionCatalog();
+            loadServiceCatalog();
+        })();
+    </script>
+</body>
+
+</html>
