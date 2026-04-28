@@ -504,18 +504,21 @@
                             <div class="multi-select-actions-bar">
                                 <span id="regionMenuStatus">Loading available regions...</span>
                                 <div>
-                                    <button id="btnSelectAllRegions" class="text-button" type="button">Select all</button>
+                                    <button id="btnSelectAllRegions" class="text-button" type="button">Select
+                                        all</button>
                                     <button id="btnClearRegions" class="text-button" type="button">Clear</button>
                                 </div>
                             </div>
                             <div class="multi-select-search">
-                                <input id="regionSearch" class="dropdown-search-input" type="text" placeholder="Search regions" />
+                                <input id="regionSearch" class="dropdown-search-input" type="text"
+                                    placeholder="Search regions" />
                             </div>
                             <div class="multi-select-options" id="regionOptions" role="listbox"
                                 aria-label="Available regions"></div>
                         </div>
                     </div>
-                    <span class="filter-hint" id="regionHint">Choose 2 or more regions to compare identical SKUs side by side.</span>
+                    <span class="filter-hint" id="regionHint">Choose 2 or more regions to compare identical SKUs side by
+                        side.</span>
                 </div>
                 <div class="filter-group"><label for="f_location">Location</label><input id="f_location"
                         placeholder="e.g. East US" /></div>
@@ -537,7 +540,8 @@
                                 </div>
                             </div>
                             <div class="multi-select-search">
-                                <input id="serviceFamilySearch" class="dropdown-search-input" type="text" placeholder="Search service families" />
+                                <input id="serviceFamilySearch" class="dropdown-search-input" type="text"
+                                    placeholder="Search service families" />
                             </div>
                             <div class="multi-select-options" id="serviceFamilyOptions" role="listbox"
                                 aria-label="Available service families"></div>
@@ -552,12 +556,14 @@
                             <div class="multi-select-actions-bar">
                                 <span id="productMenuStatus">Select service family first</span>
                                 <div>
-                                    <button id="btnSelectAllProducts" class="text-button" type="button">Select all</button>
+                                    <button id="btnSelectAllProducts" class="text-button" type="button">Select
+                                        all</button>
                                     <button id="btnClearProducts" class="text-button" type="button">Clear</button>
                                 </div>
                             </div>
                             <div class="multi-select-search">
-                                <input id="productSearch" class="dropdown-search-input" type="text" placeholder="Search products" />
+                                <input id="productSearch" class="dropdown-search-input" type="text"
+                                    placeholder="Search products" />
                             </div>
                             <div class="multi-select-options" id="productOptions" role="listbox"
                                 aria-label="Available products"></div>
@@ -577,7 +583,8 @@
                                 </div>
                             </div>
                             <div class="multi-select-search">
-                                <input id="skuSearch" class="dropdown-search-input" type="text" placeholder="Search SKUs" />
+                                <input id="skuSearch" class="dropdown-search-input" type="text"
+                                    placeholder="Search SKUs" />
                             </div>
                             <div class="multi-select-options" id="skuOptions" role="listbox"
                                 aria-label="Available SKUs"></div>
@@ -649,7 +656,8 @@
                     </thead>
                     <tbody id="comparisonBody">
                         <tr>
-                            <td colspan="99" class="empty-state">Run a search with at least two selected regions to compare prices.</td>
+                            <td colspan="99" class="empty-state">Run a search with at least two selected regions to
+                                compare prices.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1505,7 +1513,13 @@
             }
 
             async function fetchPage(url) {
-                const resp = await fetch(url);
+                const resp = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include', // For cookies or authentication tokens
+                });
                 if (!resp.ok) throw new Error(`API error ${resp.status}: ${resp.statusText}`);
                 return resp.json();
             }
