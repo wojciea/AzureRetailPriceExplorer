@@ -670,7 +670,8 @@
         (() => {
             'use strict';
 
-            const BASE_URL = 'https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview';
+            const BASE_URL = 'https://prices.azure.com/api/retail/prices';
+            const API_VERSION = '2023-01-01-preview';
             const EXCLUDED_PRICE_TYPES = ['DevTestConsumption'];
             const MAX_REGION_PAGES = 12;
             const MIN_REGION_COUNT = 65;
@@ -1512,8 +1513,15 @@
                 return userFilter || excludedTypeClause;
             }
 
+            function withApiVersion(url) {
+                const parsedUrl = new URL(url);
+                parsedUrl.searchParams.set('api-version', API_VERSION);
+                return parsedUrl.toString();
+            }
+
             async function fetchPage(url) {
-                const resp = await fetch(url, {
+                const requestUrl = withApiVersion(url);
+                const resp = await fetch(requestUrl, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1534,10 +1542,10 @@
                 renderTable();
 
                 const filterStr = buildEffectiveFilter();
-                let url = BASE_URL;
-                if (filterStr) url += '&$filter=' + encodeURIComponent(filterStr);
+                const url = new URL(BASE_URL);
+                if (filterStr) url.searchParams.set('$filter', filterStr);
 
-                await loadPage(url, true);
+                await loadPage(url.toString(), true);
             }
 
             async function loadPage(url, fresh = false) {
@@ -1700,15 +1708,16 @@
 
             async function copyApiUrlWithFilters() {
                 const filterStr = buildEffectiveFilter();
-                let url = BASE_URL;
-                if (filterStr) url += '&$filter=' + encodeURIComponent(filterStr);
+                const url = new URL(BASE_URL);
+                if (filterStr) url.searchParams.set('$filter', filterStr);
+                const finalUrl = withApiVersion(url.toString());
 
                 try {
                     if (navigator.clipboard && navigator.clipboard.writeText) {
-                        await navigator.clipboard.writeText(url);
+                        await navigator.clipboard.writeText(finalUrl);
                     } else {
                         const helperInput = document.createElement('textarea');
-                        helperInput.value = url;
+                        helperInput.value = finalUrl;
                         helperInput.setAttribute('readonly', '');
                         helperInput.style.position = 'absolute';
                         helperInput.style.left = '-9999px';
